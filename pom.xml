@@ -16,6 +16,7 @@
     <modules>
         <module>order-service</module>
         <module>promotion-engine</module>
+        <module>rest-api</module>
     </modules>
 
     <properties>
