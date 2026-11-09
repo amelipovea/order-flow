@@ -1,287 +1,175 @@
-# OrderFlow — Sistema modular de pedidos y promociones con OSGi
+# OrderFlow – Sistema Modular de Pedidos y Promociones
 
-## 1. Introducción
+## 1. Descripción del proyecto
 
-Para este proyecto desarrollamos **OrderFlow**, un sistema de gestión de pedidos y aplicación de promociones, utilizando una arquitectura modular basada en OSGi y Apache Karaf como entorno de ejecución.
+OrderFlow es un sistema desarrollado para gestionar pedidos y aplicar promociones mediante una arquitectura modular basada en OSGi.
 
-El propósito principal fue comprender cómo funciona OSGi y cómo podemos utilizarlo para construir aplicaciones cuyos componentes puedan instalarse, iniciarse, detenerse y actualizarse de manera independiente, sin necesidad de apagar todo el sistema.
+El objetivo principal de este proyecto es construir una aplicación en la que sus funcionalidades estén separadas en módulos independientes, permitiendo que cada uno tenga una responsabilidad específica y pueda comunicarse con los demás mediante servicios.
 
-Decidimos trabajar con un ejemplo de pedidos y promociones porque nos permite representar un escenario de negocio sencillo, pero que también se puede encontrar en aplicaciones reales. Por un lado, tenemos un módulo encargado de administrar los pedidos y, por otro, un módulo que se encarga de gestionar las promociones.
+Para desarrollar el proyecto utilicé Java 17, Maven y Apache Karaf como entorno de ejecución OSGi. Posteriormente, incorporé una API REST para permitir la comunicación entre el backend desarrollado en Java y una interfaz gráfica construida con React.
 
-Aunque ambos módulos están relacionados, buscamos evitar que dependan directamente de las clases internas del otro. Para conseguirlo utilizamos interfaces y el registro de servicios de OSGi.
+Con este proyecto busco demostrar cómo una aplicación puede organizarse mediante módulos independientes, cómo se comunican entre sí y cómo se pueden controlar sus servicios durante la ejecución.
 
-De esta manera, no solamente implementamos dos módulos que compilan por separado, sino que comprobamos cómo se comunican dentro de un mismo entorno y cómo se comportan cuando uno de ellos deja de estar disponible.
+## 2. Objetivos
 
-## 2. Objetivos del proyecto
+- Implementar una arquitectura modular utilizando OSGi.
+- Separar las funcionalidades de pedidos y promociones en diferentes bundles.
+- Utilizar servicios OSGi para comunicar los módulos.
+- Implementar una API REST para exponer las funcionalidades del backend.
+- Conectar una interfaz desarrollada en React con los servicios Java.
+- Registrar, consultar y actualizar pedidos.
+- Aplicar promociones mediante un motor de reglas.
+- Consultar el estado de los bundles y componentes OSGi.
+- Comprobar el funcionamiento del sistema mediante pruebas.
 
-### Objetivo general
+## 3. Tecnologías utilizadas
 
-Implementar un sistema modular utilizando Apache Karaf y OSGi, compuesto por dos bundles funcionales relacionados entre sí, con bajo acoplamiento y capacidad de iniciar y detener cada componente independientemente.
+| Tecnología | Uso |
+|---|---|
+| Java 17 | Desarrollo del backend |
+| Maven 3.10.0 | Administración y compilación del proyecto |
+| Apache Karaf 4.4.12 | Ejecución y administración de OSGi |
+| OSGi Declarative Services | Registro e interacción entre servicios |
+| Apache Felix SCR | Administración de componentes OSGi |
+| React 19 | Desarrollo de la interfaz gráfica |
+| TypeScript | Desarrollo del frontend |
+| Vite | Ejecución y compilación de React |
+| HTTP / JSON | Comunicación entre frontend y backend |
+| Git y GitHub | Control de versiones y almacenamiento del proyecto |
 
-### Objetivos específicos
+## 4. Arquitectura del sistema
 
-- Investigar el funcionamiento de OSGi, sus características y los patrones arquitectónicos relacionados.
-- Configurar Apache Karaf como entorno de ejecución de los bundles.
-- Desarrollar un bundle encargado de administrar los pedidos y publicar un servicio.
-- Desarrollar un segundo bundle encargado de gestionar las promociones y consumir el servicio publicado por el primero.
-- Utilizar el registro de servicios de OSGi para comunicar ambos módulos.
-- Comprobar que los bundles puedan detenerse e iniciarse sin apagar Apache Karaf ni detener innecesariamente el otro módulo.
-- Documentar las pruebas realizadas mediante capturas de la consola y del entorno de ejecución.
+Para desarrollar OrderFlow elegí una arquitectura modular basada en OSGi.
 
----
+Elegí este enfoque porque necesitaba separar las responsabilidades del sistema y permitir que los diferentes módulos se comuniquen mediante servicios, sin tener que concentrar toda la lógica en una sola aplicación.
 
-## 3. Investigación: ¿Qué es OSGi?
+La arquitectura está organizada en los siguientes componentes:
 
-OSGi (Open Services Gateway initiative) es una plataforma para desarrollar y ejecutar aplicaciones Java de manera modular.
+### 4.1 Order Service
 
-Su principal característica es que permite dividir una aplicación en componentes independientes llamados **bundles**. Cada bundle contiene sus propias clases, recursos, dependencias y configuración, además de definir qué paquetes necesita y cuáles pone a disposición de otros componentes.
+Es el módulo encargado de administrar los pedidos.
 
-A diferencia de una aplicación Java tradicional, donde normalmente ejecutamos todo como una sola unidad, OSGi permite administrar los componentes individualmente durante la ejecución.
+Sus principales responsabilidades son:
 
-Entre sus principales características encontramos:
+- Crear pedidos.
+- Consultar los pedidos registrados.
+- Actualizar el estado de los pedidos.
+- Proporcionar el servicio `OrderService` para que otros módulos puedan utilizar sus funcionalidades.
 
-- **Modularidad:** permite dividir una aplicación en módulos independientes.
-- **Bajo acoplamiento:** los componentes pueden comunicarse mediante interfaces y servicios, sin conocer necesariamente sus implementaciones internas.
-- **Registro de servicios:** permite publicar servicios para que otros bundles puedan encontrarlos y utilizarlos.
-- **Gestión del ciclo de vida:** permite instalar, iniciar, detener, actualizar y desinstalar bundles.
-- **Gestión de dependencias:** controla los paquetes que necesita cada componente y verifica si están disponibles.
-- **Servicios dinámicos:** permite detectar cuándo un servicio aparece, desaparece o vuelve a estar disponible.
+Para esta implementación utilicé un almacenamiento en memoria, mediante la clase `InMemoryOrderService`.
 
-### ¿Qué podemos hacer con OSGi?
+### 4.2 Promotion Engine
 
-OSGi puede utilizarse para construir aplicaciones que necesitan una estructura modular y flexible.
+Es el módulo encargado de calcular y aplicar promociones a los pedidos.
 
-Por ejemplo, podemos tener un sistema empresarial dividido en módulos de usuarios, pedidos, facturación, inventario y reportes. Cada módulo puede ofrecer servicios a los demás sin que todos tengan que conocer su implementación interna.
+Sus responsabilidades son:
 
-También se utiliza en aplicaciones extensibles, plataformas empresariales, sistemas embebidos y entornos donde se necesita administrar componentes durante la ejecución.
+- Recibir la información de un pedido.
+- Evaluar las condiciones de las promociones.
+- Calcular el descuento correspondiente.
+- Devolver el resultado de la promoción.
 
-### ¿A qué patrones de arquitectura responde?
+Implementé una regla de descuento del 10 % para pedidos de 100 dólares o más.
 
-OSGi no es un único patrón de arquitectura, sino una plataforma que permite implementar diferentes enfoques arquitectónicos.
+Este módulo utiliza el servicio `OrderService` mediante una referencia OSGi dinámica y opcional. De esta manera, puede detectar la disponibilidad del servicio de pedidos durante la ejecución.
 
-En nuestra investigación identificamos principalmente los siguientes:
+### 4.3 REST API
 
-**Arquitectura modular basada en componentes**
+Este módulo permite que las funcionalidades desarrolladas en Java puedan utilizarse desde otras aplicaciones mediante peticiones HTTP.
 
-Es el enfoque principal que utilizamos. La aplicación se divide en módulos independientes, cada uno con responsabilidades específicas y contratos de comunicación definidos.
+Implementé tres componentes principales:
 
-**Arquitectura orientada a servicios (SOA)**
+- `SystemServlet`: permite consultar información del entorno OSGi y su disponibilidad.
+- `OrdersServlet`: permite trabajar con los pedidos mediante la API REST.
+- `PromotionsServlet`: permite acceder a las funcionalidades del motor de promociones.
 
-OSGi permite publicar servicios mediante interfaces y un registro centralizado. Otros componentes pueden descubrir esos servicios y utilizarlos sin depender directamente de las clases que los implementan.
+Para publicar estos componentes utilicé el soporte HTTP de Apache Karaf.
 
-**Arquitectura de microkernel o basada en plugins**
+### 4.4 Frontend React
 
-El entorno principal proporciona las funcionalidades necesarias para ejecutar la aplicación, mientras que los bundles agregan capacidades de manera modular. Apache Karaf permite administrar estos componentes dinámicamente.
+Desarrollé una interfaz gráfica utilizando React para que el usuario pueda interactuar con el sistema.
 
-Es importante aclarar que los bundles OSGi no son microservicios. En nuestra implementación ambos se ejecutan dentro del mismo entorno de ejecución Java, pero mantienen independencia a nivel modular y de ciclo de vida.
+La finalidad del frontend es facilitar las operaciones de pedidos, promociones y monitoreo, evitando que todas las acciones tengan que ejecutarse manualmente desde la consola de Karaf.
 
----
+La comunicación con Java se realiza mediante peticiones HTTP a la API REST.
 
-## 4. Tecnologías utilizadas
+## 5. Funcionamiento general
 
-Para desarrollar el proyecto utilizamos las siguientes tecnologías:
+El funcionamiento del sistema se organiza de la siguiente manera:
 
-| Tecnología | Versión | Función |
-|---|---|---|
-| Java JDK | 17 | Lenguaje y entorno de desarrollo |
-| Apache Maven | 3.10.0 | Gestión de dependencias y construcción |
-| Apache Karaf | 4.4.12 | Entorno de ejecución OSGi |
-| OSGi Declarative Services | Compatible con Karaf 4.4.12 | Registro e inyección de servicios |
-| Maven Bundle Plugin | 6.2.0 | Generación de bundles OSGi |
-| Visual Studio Code | 1.144.1 | Entorno de desarrollo |
-| Git | — | Control de versiones |
-
-Elegimos Java 17 porque es la versión con la que configuramos la compilación del proyecto y Apache Karaf 4.4.12 porque nos proporciona un entorno preparado para administrar bundles OSGi.
-
-Utilizamos Maven para mantener una estructura organizada y generar los archivos JAR con los metadatos necesarios para que Karaf pueda reconocerlos como bundles.
-
----
-
-## 5. Arquitectura del sistema
-
-Para OrderFlow diseñamos una arquitectura modular compuesta por dos bundles principales que se comunican mediante servicios OSGi.
-
-### Diagrama de arquitectura
-
-```mermaid
-flowchart TB
-    K["Apache Karaf 4.4.12"]
-    
-    subgraph O["Bundle 1: order-service"]
-        OA["Orders API"]
-        OI["InMemoryOrderService"]
-        OS["Servicio OrderService"]
-        OA --> OI
-        OI --> OS
-    end
-
-    subgraph P["Bundle 2: promotion-engine"]
-        PA["Promotions API"]
-        PI["PromotionEngineComponent"]
-        PR["PercentageDiscountRule"]
-        PS["Servicio PromotionService"]
-        PA --> PI
-        PI --> PR
-        PI --> PS
-    end
-
-    K --> O
-    K --> P
-    OS -->|"Servicio OSGi"| PI
-```
-
-### 5.1. Bundle Order Service
-
-Este es el módulo encargado de administrar la parte relacionada con los pedidos.
-
-Su responsabilidad es proporcionar un servicio público que pueda ser utilizado por otros componentes del sistema.
-
-Dentro de este módulo tenemos:
-
-- **Order:** representa la información de un pedido.
-- **OrderStatus:** representa los estados de un pedido.
-- **OrderService:** define el contrato público del servicio.
-- **InMemoryOrderService:** contiene la implementación del servicio.
-
-La clase `InMemoryOrderService` implementa la interfaz `OrderService` y publica el servicio mediante OSGi.
-
-Elegimos separar la interfaz de su implementación para que otros módulos no tengan que conocer cómo funciona internamente el servicio.
-
-### 5.2. Bundle Promotion Engine
-
-Este módulo se encarga de la gestión de las promociones.
-
-Su responsabilidad es consumir el servicio de pedidos y proporcionar un servicio relacionado con la evaluación de promociones.
-
-Dentro de este módulo tenemos:
-
-- **PromotionService:** define el contrato público para las operaciones de promociones.
-- **PromotionEngineComponent:** implementa el componente encargado de gestionar el motor de promociones y su conexión con Order Service.
-- **PercentageDiscountRule:** contiene la regla de descuento porcentual.
-- **PromotionResult:** representa el resultado relacionado con una promoción.
-
-Una característica importante de este módulo es que también publica su propio servicio, llamado `PromotionService`.
-
-De esta manera, Promotion Engine no solamente consume servicios de otro bundle, sino que también puede ofrecer funcionalidades a otros componentes.
-
-### 5.3. Comunicación entre los bundles
-
-Para comunicar los dos módulos utilizamos el mecanismo de servicios de OSGi.
-
-Order Service publica la interfaz:
-
-`ec.udla.orderflow.orders.api.OrderService`
-
-Por su parte, Promotion Engine utiliza una referencia OSGi para encontrar y consumir ese servicio.
-
-En nuestra implementación utilizamos `@Reference` con las siguientes características:
-
-```java
-@Reference(
-    cardinality = ReferenceCardinality.OPTIONAL,
-    policy = ReferencePolicy.DYNAMIC
-)
-```
-
-Elegimos estas propiedades por dos razones:
-
-- **OPTIONAL:** permite que Promotion Engine pueda mantenerse activo aunque Order Service no esté disponible temporalmente.
-- **DYNAMIC:** permite que la referencia se desconecte cuando el servicio desaparece y vuelva a conectarse cuando esté disponible nuevamente.
-
-También implementamos los métodos `bindOrderService()` y `unbindOrderService()` para gestionar la conexión y desconexión del servicio.
-
-Esto permite que los componentes estén relacionados, pero sin mantener una dependencia directa con la implementación interna del otro módulo.
-
----
+1. El usuario interactúa con la interfaz de React.
+2. React envía una petición HTTP a la API REST.
+3. La API recibe la solicitud y utiliza el servicio OSGi correspondiente.
+4. Order Service procesa y administra la información del pedido.
+5. Promotion Engine evalúa las condiciones de las promociones cuando se solicita.
+6. La API devuelve una respuesta en formato JSON.
+7. React recibe la respuesta y muestra los resultados al usuario.
+
+De esta manera, cada módulo mantiene sus responsabilidades separadas y la comunicación se realiza mediante servicios e interfaces definidas.
 
 ## 6. Estructura del proyecto
 
-Organizamos el repositorio utilizando Maven multi-módulo para separar las responsabilidades y facilitar el mantenimiento.
+La estructura principal del repositorio está organizada de la siguiente manera:
 
 ```text
 order-flow/
 │
-├── pom.xml
-├── README.md
-├── .gitignore
-│
 ├── order-service/
-│   ├── pom.xml
 │   └── src/
-│       ├── main/
-│       │   └── java/
-│       │       └── ec/udla/orderflow/orders/
-│       │           ├── api/
-│       │           │   ├── Order.java
-│       │           │   ├── OrderService.java
-│       │           │   └── OrderStatus.java
-│       │           │
-│       │           └── internal/
-│       │               └── InMemoryOrderService.java
-│       │
-│       └── test/
+│       └── main/java/
+│           └── ec/udla/orderflow/orders/
+│               ├── api/
+│               └── internal/
 │
 ├── promotion-engine/
-│   ├── pom.xml
 │   └── src/
-│       ├── main/
-│       │   └── java/
-│       │       └── ec/udla/orderflow/promotions/
-│       │           ├── api/
-│       │           │   ├── PromotionResult.java
-│       │           │   └── PromotionService.java
-│       │           │
-│       │           ├── internal/
-│       │           │   └── PromotionEngineComponent.java
-│       │           │
-│       │           └── rules/
-│       │               └── PercentageDiscountRule.java
-│       │
-│       └── test/
+│       └── main/java/
+│           └── ec/udla/orderflow/promotions/
+│               ├── api/
+│               ├── internal/
+│               └── rules/
 │
-└── docs/
-    ├── arquitectura/
-    ├── investigacion/
-    └── evidencias/
+├── rest-api/
+│   └── src/
+│       └── main/java/
+│           └── ec/udla/orderflow/rest/
+│               └── internal/
+│
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── services/
+│   │   └── App.tsx
+│   ├── package.json
+│   └── vite.config.ts
+│
+├── scripts/
+│   └── test-rest-api.ps1
+│
+├── docs/
+│   ├── arquitectura/
+│   ├── evidencias/
+│   └── investigacion/
+│
+├── pom.xml
+├── README.md
+└── .gitignore
 ```
 
-El archivo `pom.xml` principal administra los dos módulos y permite construir el proyecto desde una única ubicación.
+## 7. Instalación y ejecución
 
-Cada módulo tiene su propio `pom.xml`, donde definimos sus dependencias y configuración para generar un bundle OSGi.
+### 7.1 Requisitos previos
 
----
+Antes de ejecutar el proyecto es necesario tener instalado:
 
-## 7. ¿Cómo funciona el proyecto?
-
-El funcionamiento general se basa en la separación de responsabilidades.
-
-Primero, Order Service proporciona las operaciones relacionadas con los pedidos y publica su servicio dentro del entorno OSGi.
-
-Después, Promotion Engine busca ese servicio mediante la referencia definida en su componente.
-
-Cuando el servicio está disponible, OSGi establece la conexión y Promotion Engine puede utilizar el contrato público de pedidos.
-
-Por otra parte, Promotion Engine proporciona su propio servicio para las funcionalidades relacionadas con promociones.
-
-La comunicación se realiza mediante interfaces públicas y el registro de servicios, evitando que los módulos tengan que acceder directamente a las clases internas de los demás.
-
-Una decisión importante fue utilizar una implementación en memoria para los pedidos. Esto nos permitió concentrarnos en el objetivo principal del deber: comprender la modularidad, el registro de servicios y la gestión del ciclo de vida de los bundles.
-
-Por esta razón, el proyecto no incorpora una base de datos ni persistencia permanente. La información almacenada en memoria no se conserva después de reiniciar la aplicación.
-
----
-
-## 8. Instalación y ejecución
-
-### Requisitos previos
-
-Antes de ejecutar el proyecto necesitamos tener instalados:
-
-- Java JDK 17.
-- Apache Maven 3.10.0.
+- JDK 17.
+- Apache Maven.
 - Apache Karaf 4.4.12.
+- Node.js y npm.
+- Visual Studio Code (recomendado).
 
-Podemos comprobar las versiones desde PowerShell:
+Para comprobar Java y Maven ejecuté:
 
 ```powershell
 java -version
@@ -289,385 +177,278 @@ javac -version
 mvn -version
 ```
 
-Es importante comprobar que Maven también esté utilizando Java 17.
+### 7.2 Compilar el backend
 
-### 8.1. Construir el proyecto
-
-Nos ubicamos en la carpeta principal del repositorio:
+Primero es necesario ubicarse en la carpeta raíz del proyecto:
 
 ```powershell
 cd C:\AME\JAVA\order-flow
 ```
 
-Ejecutamos:
-
-```powershell
-mvn clean verify
-```
-
-Este comando limpia los archivos generados anteriormente, compila los módulos y ejecuta las fases de verificación configuradas en Maven.
-
-Para instalar los artefactos en el repositorio local de Maven, utilizamos:
+Para compilar los módulos y generar los bundles ejecuté:
 
 ```powershell
 mvn clean install
 ```
 
-Esto nos permite utilizar posteriormente las coordenadas Maven para instalar los bundles en Karaf.
-
-### 8.2. Iniciar Apache Karaf
-
-Nos dirigimos a la carpeta de instalación de Karaf:
+También se puede compilar específicamente la API REST junto con sus dependencias:
 
 ```powershell
-cd C:\AME\JAVA\tools\karaf\apache-karaf-4.4.12\bin
+mvn -pl rest-api -am clean install
 ```
 
-Iniciamos el entorno:
+Al finalizar, Maven genera los archivos JAR dentro de las carpetas `target` de cada módulo.
 
-```powershell
-.\karaf.bat
-```
+### 7.3 Ejecutar Apache Karaf
 
-Cuando Karaf inicia correctamente, aparece su consola:
+Una vez compilados e instalados los módulos en el repositorio local de Maven, inicié Apache Karaf.
+
+Desde su consola habilité el soporte HTTP:
 
 ```text
-karaf@root()>
+feature:install http-whiteboard
 ```
 
-### 8.3. Habilitar Declarative Services
-
-Desde la consola de Karaf ejecutamos:
-
-```text
-feature:install scr
-```
-
-Esto habilita el soporte de Declarative Services, que necesitamos para gestionar los componentes y referencias OSGi.
-
-### 8.4. Instalar los bundles
-
-Instalamos primero Order Service:
+Después instalé los tres bundles:
 
 ```text
 bundle:install -s mvn:ec.udla.orderflow/order-service/1.0.0
 ```
 
-Después instalamos Promotion Engine:
-
 ```text
 bundle:install -s mvn:ec.udla.orderflow/promotion-engine/1.0.0
 ```
 
-Utilizamos el parámetro `-s` para que los bundles se inicien después de su instalación.
+```text
+bundle:install -s mvn:ec.udla.orderflow/orderflow-rest-api/1.0.0
+```
 
-Instalamos primero Order Service porque Promotion Engine necesita importar el paquete público de pedidos.
-
-### 8.5. Comprobar el funcionamiento
-
-Para consultar los bundles instalados ejecutamos:
+Para comprobar que se encuentran funcionando utilicé:
 
 ```text
 bundle:list
 ```
 
-Para consultar los componentes OSGi:
+También utilicé:
 
 ```text
 scr:list
 ```
 
-Para comprobar la conexión de Promotion Engine:
+Estos comandos permiten consultar los bundles instalados y los componentes administrados por Declarative Services.
 
-```text
-scr:info ec.udla.orderflow.promotions.internal.PromotionEngineComponent
+### 7.4 Ejecutar el frontend
+
+Para iniciar React abrí una terminal en la carpeta `frontend`:
+
+```powershell
+cd C:\AME\JAVA\order-flow\frontend
 ```
 
-Y para consultar los servicios registrados:
+Instalé las dependencias:
 
-```text
-service:list
+```powershell
+npm.cmd install
 ```
 
-Con estos comandos podemos verificar el estado de los módulos, los componentes y las referencias entre ellos.
+Después ejecuté:
 
-**Nota:** los identificadores numéricos de los bundles pueden cambiar dependiendo de las instalaciones realizadas en Karaf. Por eso debemos consultar `bundle:list` antes de utilizar los comandos de inicio y parada.
+```powershell
+npm.cmd run dev
+```
 
----
+Vite proporciona una dirección local para abrir la aplicación en el navegador, normalmente:
 
-## 9. Pruebas de funcionamiento y ciclo de vida
+```text
+http://localhost:5173
+```
 
-Una de las condiciones principales del deber consiste en demostrar que podemos detener un bundle sin afectar la ejecución del resto del sistema.
+## 8. API REST y pruebas de funcionamiento
 
-Para comprobarlo realizamos pruebas directamente desde la consola de Apache Karaf.
+Para comprobar que el backend estuviera disponible realicé diferentes pruebas mediante PowerShell.
 
-### 9.1. Estado inicial
+### 8.1 Comprobar disponibilidad del sistema
 
-Primero verificamos que los dos bundles estén activos:
+Ejecuté la siguiente petición:
+
+```powershell
+Invoke-RestMethod -Uri "http://localhost:8181/api/system/health"
+```
+
+El resultado obtenido fue:
+
+```text
+status      : UP
+runtime     : Apache Karaf / OSGi
+bundleCount : 84
+```
+
+Con esta prueba comprobé que la API REST respondía correctamente y que podía comunicarse con el entorno Apache Karaf.
+
+### 8.2 Prueba automatizada de la API
+
+Para facilitar las comprobaciones desarrollé un script de PowerShell:
+
+```text
+scripts/test-rest-api.ps1
+```
+
+Lo ejecuté utilizando:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\test-rest-api.ps1
+```
+
+El script realiza seis comprobaciones:
+
+1. Comprueba que el entorno OSGi esté disponible.
+2. Crea un pedido de prueba.
+3. Consulta los pedidos registrados.
+4. Evalúa una promoción.
+5. Actualiza el estado de un pedido.
+6. Consulta los estados de los bundles OSGi.
+
+### 8.3 Resultado de la promoción
+
+Durante las pruebas registré un pedido de 150 dólares.
+
+El motor de promociones aplicó correctamente el descuento del 10 %.
+
+| Concepto | Valor |
+|---|---:|
+| Total original | $150.00 |
+| Descuento aplicado | $15.00 |
+| Total después del descuento | $135.00 |
+| Código de promoción | TEN_PERCENT_OVER_100 |
+
+También comprobé que el pedido cambiara de estado de `CREATED` a `PROCESSING`.
+
+Estas pruebas permitieron comprobar que el servicio de pedidos y el motor de promociones trabajan correctamente.
+
+## 9. Monitoreo y comprobación de servicios OSGi
+
+Una parte importante del proyecto fue comprobar qué sucede cuando los servicios están disponibles y qué ocurre cuando alguno deja de funcionar.
+
+Para ello utilicé los comandos de administración de Apache Karaf.
+
+### Consultar bundles
 
 ```text
 bundle:list
 ```
 
-Comprobamos que aparezcan:
-
-- OrderFlow - Order Service: ACTIVE.
-- OrderFlow - Promotion Engine: ACTIVE.
-
-También consultamos:
+### Consultar componentes
 
 ```text
 scr:list
 ```
 
-En este resultado comprobamos que los componentes `InMemoryOrderService` y `PromotionEngineComponent` se encuentran activos.
-
-### 9.2. Comprobar la conexión entre servicios
-
-Ejecutamos:
+### Consultar información de un componente
 
 ```text
 scr:info ec.udla.orderflow.promotions.internal.PromotionEngineComponent
 ```
 
-En la información obtenida comprobamos que la referencia `orderService` se encuentra satisfecha y vinculada al servicio publicado por Order Service.
-
-El resultado muestra un binding hacia el bundle `order-service`.
-
-Esto demuestra que Promotion Engine está consumiendo correctamente el servicio público del primer módulo.
-
-### 9.3. Detener Order Service
-
-Para comprobar el comportamiento cuando el proveedor deja de estar disponible ejecutamos:
+### Detener un bundle
 
 ```text
-bundle:stop 57
+bundle:stop ID
 ```
 
-Después consultamos:
+### Iniciar nuevamente un bundle
 
 ```text
-bundle:list
+bundle:start ID
 ```
 
-En nuestra prueba observamos que Order Service pasó a estado `Resolved`, mientras que Promotion Engine continuó en estado `Active`.
+Realicé pruebas deteniendo Order Service y observando cómo Promotion Engine detectaba la ausencia de su servicio asociado.
 
-Posteriormente ejecutamos:
+Cuando inicié nuevamente Order Service, Promotion Engine volvió a establecer la referencia al servicio.
 
-```text
-scr:info ec.udla.orderflow.promotions.internal.PromotionEngineComponent
-```
+Con esto comprobé una de las ventajas de OSGi: los módulos pueden administrar sus dependencias durante la ejecución, sin necesidad de detener todo el sistema.
 
-El resultado mostró:
+## 10. Almacenamiento de información
 
-```text
-orderService:
-SATISFIED 0..1 dynamic
+En esta versión utilicé almacenamiento en memoria para administrar los pedidos.
 
-(no active bindings)
-```
+Esto permite realizar las pruebas de creación, consulta y actualización sin necesidad de configurar una base de datos externa.
 
-Esto significa que la referencia al servicio de pedidos dejó de tener una conexión activa, pero Promotion Engine permaneció ejecutándose.
+Sin embargo, es importante considerar que la información almacenada no es permanente. Si se reinicia el servicio o el entorno, los pedidos almacenados pueden perderse.
 
-### 9.4. Recuperar Order Service
+## 11. Evidencias del proyecto
 
-Volvimos a iniciar el bundle:
+En esta sección presento las capturas que fui obteniendo durante el desarrollo y las pruebas de OrderFlow.
 
-```text
-bundle:start 57
-```
+Las evidencias permiten comprobar tanto la configuración inicial como el funcionamiento de los módulos, la API REST y la integración con el frontend.
 
-Después consultamos nuevamente el componente:
+Las imágenes están almacenadas en la carpeta `docs/evidencias/`.
 
-```text
-scr:info ec.udla.orderflow.promotions.internal.PromotionEngineComponent
-```
+### 11.1 Configuración y funcionamiento de OSGi
 
-En el resultado comprobamos que la referencia volvió a establecerse y apareció nuevamente un binding hacia Order Service.
+En las primeras capturas se muestra la preparación del entorno, la configuración de Maven, la compilación de los módulos, la instalación de los bundles y las pruebas de disponibilidad de los servicios.
 
-En nuestra ejecución, el servicio se registró nuevamente con el identificador 102.
-
-Esto demuestra que OSGi detectó la disponibilidad del servicio y recuperó la conexión dinámica sin necesidad de reiniciar Promotion Engine.
-
-### 9.5. Detener Promotion Engine
-
-También comprobamos el ciclo de vida del segundo módulo:
-
-```text
-bundle:stop 58
-```
-
-Después ejecutamos:
-
-```text
-bundle:list
-```
-
-En esta prueba verificamos que Promotion Engine pudiera detenerse mientras Order Service permanecía activo.
-
-También utilizamos:
-
-```text
-service:list
-```
-
-para comprobar el estado de los servicios publicados.
-
-### 9.6. Recuperar Promotion Engine
-
-Finalmente volvimos a iniciar el segundo bundle:
-
-```text
-bundle:start 58
-```
-
-Consultamos nuevamente:
-
-```text
-bundle:list
-scr:list
-service:list
-```
-
-Con estas comprobaciones verificamos la recuperación del componente y la disponibilidad de los servicios.
-
-### Resumen de las pruebas
-
-| Prueba | Resultado esperado |
-|---|---|
-| Iniciar ambos bundles | Los dos quedan activos |
-| Consultar servicios | Los servicios están registrados |
-| Consultar Promotion Engine | La referencia a Order Service está vinculada |
-| Detener Order Service | Promotion Engine continúa activo |
-| Recuperar Order Service | La referencia vuelve a conectarse |
-| Detener Promotion Engine | Order Service continúa activo |
-| Recuperar Promotion Engine | El componente vuelve a estar disponible |
-
----
-
-## 10. Evidencias del proyecto
-
-Para demostrar el funcionamiento de nuestra implementación organizamos las capturas realizadas durante el desarrollo y las pruebas en la carpeta `docs/evidencias/`.
-
-### 10.1. Configuración e instalación de Karaf
-
-**01. Consola de Apache Karaf**
-
-![Consola de Karaf](docs/evidencias/01-karaf-consola.png)
-
-**02. Características instaladas y soporte SCR**
-
-![Características de Karaf](docs/evidencias/02-karaf-scr.png)
-
-**03. Versiones de Java y Maven**
-
-![Versiones del entorno](docs/evidencias/03-java-maven.png)
-
-### 10.2. Bundles y servicios OSGi
-
-**04. Bundles activos**
-
-![Bundles activos](docs/evidencias/04-bundles-activos.png)
-
-**05. Componentes OSGi activos**
-
-![Componentes activos](docs/evidencias/05-componentes-activos.png)
-
-**06. Referencia entre Order Service y Promotion Engine**
-
-![Servicios conectados](docs/evidencias/06-servicios-conectados.png)
-
-**07. Servicios registrados en OSGi**
+**Servicios OSGi registrados**
 
 ![Servicios registrados](docs/evidencias/07-servicios-registrados.png)
 
-### 10.3. Inspección de los bundles
+**Compilación del proyecto Maven**
 
-**08. Manifiesto de Order Service**
+![Compilación Maven](docs/evidencias/15-maven-build.png)
 
-![Manifiesto Order Service](docs/evidencias/08-manifest-order-service.png)
+### 11.2 Pruebas de la API REST
 
-**09. Manifiesto de Promotion Engine**
+**Disponibilidad del entorno**
 
-![Manifiesto Promotion Engine](docs/evidencias/09-manifest-promotion-engine.png)
+![API Health](docs/evidencias/16-api-health.png)
 
-### 10.4. Pruebas de inicio y parada
+**Pruebas completas de la API REST**
 
-**10. Estado inicial de los dos bundles**
+![Pruebas de API](docs/evidencias/17-api-pruebas-completas.png)
 
-![Estado inicial](docs/evidencias/10-estado-inicial.png)
+### 11.3 Interfaz gráfica e integración con React
 
-**11. Detención de Order Service**
+**Panel principal**
 
-![Parada Order Service](docs/evidencias/11-parada-order-service.png)
+![Dashboard](docs/evidencias/18-frontend-dashboard.png)
 
-**12. Recuperación de Order Service**
+**Registro de pedidos**
 
-![Recuperación Order Service](docs/evidencias/12-recuperacion-order-service.png)
+![Crear pedido](docs/evidencias/19-frontend-crear-pedido.png)
 
-**13. Detención de Promotion Engine**
+**Comunicación entre React y Java**
 
-![Parada Promotion Engine](docs/evidencias/13-parada-promotion-engine.png)
+![Conexión React Backend](docs/evidencias/20-react-conexion-backend.png)
 
-**14. Recuperación de Promotion Engine**
+**Consulta de pedidos**
 
-![Recuperación Promotion Engine](docs/evidencias/14-recuperacion-promotion-engine.png)
+![Lista de pedidos](docs/evidencias/21-frontend-lista-pedidos.png)
 
-### 10.5. Construcción y verificación
+**Motor de promociones**
 
-**15. Resultado de la construcción Maven**
+![Promociones](docs/evidencias/22-frontend-promociones.png)
 
-![Construcción Maven](docs/evidencias/15-maven-build.png)
+**Actualización del estado del pedido**
 
-En esta evidencia mostramos el resultado de la construcción del proyecto y verificamos que los módulos puedan compilarse y empaquetarse correctamente.
+![Estado del pedido](docs/evidencias/23-frontend-estado-pedido.png)
 
----
+**Monitoreo de bundles OSGi**
 
-## 11. ¿Por qué elegimos esta arquitectura?
+![Monitoreo OSGi](docs/evidencias/24-frontend-monitor-osgi.png)
 
-Elegimos OSGi porque el objetivo principal del deber no era simplemente desarrollar una aplicación de pedidos, sino comprender cómo podemos construir un sistema modular en el que sus componentes tengan responsabilidades independientes.
+## 12. Conclusiones
 
-Consideramos que la separación entre pedidos y promociones representa un buen ejemplo para demostrar esta característica.
+Durante el desarrollo de OrderFlow pude comprender y aplicar el funcionamiento de una arquitectura modular utilizando OSGi.
 
-Si hubiéramos implementado todo dentro de un único módulo, sería más difícil demostrar la independencia entre componentes. Por eso decidimos separar las responsabilidades y utilizar interfaces públicas para establecer la comunicación.
+Separar el sistema en diferentes bundles permitió que cada módulo tuviera una responsabilidad específica. Order Service se encarga de los pedidos, Promotion Engine administra las reglas de descuentos y REST API permite acceder a estas funcionalidades mediante HTTP.
 
-También elegimos Apache Karaf porque proporciona herramientas para administrar los bundles durante la ejecución, consultar sus estados y comprobar las referencias entre servicios.
+También comprobé la utilidad de Declarative Services para administrar las dependencias entre módulos durante la ejecución. Las pruebas de detener y volver a iniciar los bundles permitieron observar cómo responde el sistema cuando un servicio deja de estar disponible.
 
-Otra decisión importante fue utilizar referencias dinámicas y opcionales. Esto nos permitió comprobar que Promotion Engine puede mantenerse activo cuando Order Service se detiene y que la conexión puede recuperarse cuando el servicio vuelve a estar disponible.
+La incorporación de React permitió avanzar hacia una aplicación con una interfaz gráfica que utiliza los servicios desarrollados en Java.
 
-De esta manera conseguimos representar una arquitectura modular que puede ampliarse incorporando nuevos bundles sin tener que modificar necesariamente la implementación interna de los módulos existentes.
+Finalmente, considero que este proyecto me permitió comprender mejor la importancia de la modularidad, la separación de responsabilidades, la comunicación entre servicios y el monitoreo de una aplicación durante su ejecución.
 
----
+## 13. Repositorio
 
-## 12. Limitaciones y posibles mejoras
+El código fuente y los archivos del proyecto se encuentran disponibles en GitHub:
 
-Aunque nuestra implementación cumple con el propósito académico del ejercicio, reconocemos que todavía existen aspectos que podríamos mejorar para acercarla a un sistema empresarial.
-
-Entre las posibles mejoras tenemos:
-
-- Incorporar una base de datos para almacenar los pedidos de manera permanente.
-- Implementar una API para permitir que otros sistemas puedan registrar y consultar pedidos.
-- Agregar nuevas reglas de promociones, como descuentos por cantidad o promociones especiales.
-- Incorporar pruebas automatizadas para verificar las operaciones de pedidos y promociones.
-- Implementar mecanismos de registro y monitoreo para facilitar el diagnóstico de errores.
-- Agregar nuevos bundles, como inventario, facturación y notificaciones.
-
-Actualmente utilizamos una implementación en memoria, por lo que los datos no tienen persistencia después de reiniciar el entorno.
-
-También debemos considerar que detener un bundle no significa que las operaciones que dependen de él puedan continuar normalmente. Por ejemplo, mientras Order Service está detenido, Promotion Engine puede permanecer activo, pero no puede realizar las operaciones que necesitan el servicio de pedidos.
-
----
-
-## 13. Conclusiones
-
-Durante el desarrollo de OrderFlow comprendimos que OSGi permite construir aplicaciones Java de una manera diferente a la estructura tradicional de un único programa.
-
-Aprendimos a dividir una aplicación en bundles, definir interfaces públicas, publicar servicios y permitir que otros componentes los consuman sin depender directamente de sus implementaciones.
-
-Uno de los aspectos más importantes fue comprobar el funcionamiento del ciclo de vida de los bundles mediante Apache Karaf. Pudimos detener Order Service y observar que Promotion Engine permanecía activo, además de comprobar que la referencia al servicio desaparecía y volvía a establecerse cuando iniciábamos nuevamente el módulo.
-
-También comprendimos la importancia de utilizar referencias dinámicas y opcionales para construir componentes que puedan adaptarse a la disponibilidad de otros servicios.
-
-Finalmente, consideramos que este ejercicio nos permitió entender cómo una aplicación pequeña puede organizarse utilizando principios que también son importantes en sistemas empresariales más grandes. Aunque nuestro proyecto es sencillo, la separación de responsabilidades, el bajo acoplamiento y la administración independiente de componentes son características que podemos aplicar en desarrollos de mayor complejidad.
-
-**Con OrderFlow conseguimos implementar y comprobar una arquitectura modular basada en OSGi, utilizando Apache Karaf como entorno de ejecución y dos bundles relacionados mediante servicios, cumpliendo el propósito principal del ejercicio.**
+[OrderFlow – Repositorio GitHub](https://github.com/amelipovea/order-flow)
