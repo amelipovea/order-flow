@@ -16,16 +16,17 @@ import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Implementacion del servicio de pedidos.
+ * Implementación del servicio de pedidos.
  *
- * Esta clase es administrada por OSGi Declarative Services.
- * Publica OrderService para que otros bundles puedan utilizarlo.
+ * OSGi administra este componente y publica OrderService.
+ * Los pedidos se mantienen en memoria mientras el bundle está activo.
  */
 @Component(
         service = OrderService.class,
@@ -36,38 +37,31 @@ public class InMemoryOrderService implements OrderService {
     private static final Logger LOGGER =
             LoggerFactory.getLogger(InMemoryOrderService.class);
 
-    /**
-     * Almacenamiento temporal de pedidos.
-     */
     private final Map<String, Order> orders =
             new ConcurrentHashMap<>();
 
-    /**
-     * Se ejecuta cuando OSGi activa el componente.
-     */
     @Activate
     void activate() {
-
         LOGGER.info("Order Service ha sido iniciado.");
-
     }
 
-    /**
-     * Se ejecuta cuando OSGi desactiva el componente.
-     */
     @Deactivate
     void deactivate() {
-
         LOGGER.info("Order Service ha sido detenido.");
-
     }
 
-    /**
-     * Crea y registra un nuevo pedido.
-     */
     @Override
     public Order createOrder(String customerId, BigDecimal total) {
+        return createOrder(customerId, "", 1, total);
+    }
 
+    @Override
+    public Order createOrder(
+            String customerId,
+            String email,
+            int items,
+            BigDecimal total
+    ) {
         if (customerId == null || customerId.isBlank()) {
             throw new IllegalArgumentException(
                     "El identificador del cliente es obligatorio."
@@ -82,11 +76,19 @@ public class InMemoryOrderService implements OrderService {
             );
         }
 
+        if (items < 1) {
+            throw new IllegalArgumentException(
+                    "El pedido debe contener al menos un artículo."
+            );
+        }
+
         String orderId = "ORD-" + UUID.randomUUID();
 
         Order order = new Order(
                 orderId,
                 customerId,
+                email,
+                items,
                 total,
                 OrderStatus.CREATED,
                 Instant.now()
@@ -104,12 +106,8 @@ public class InMemoryOrderService implements OrderService {
         return order;
     }
 
-    /**
-     * Busca un pedido por su identificador.
-     */
     @Override
     public Optional<Order> findById(String orderId) {
-
         if (orderId == null || orderId.isBlank()) {
             throw new IllegalArgumentException(
                     "El identificador del pedido es obligatorio."
@@ -119,12 +117,8 @@ public class InMemoryOrderService implements OrderService {
         return Optional.ofNullable(orders.get(orderId));
     }
 
-    /**
-     * Devuelve todos los pedidos registrados.
-     */
     @Override
     public List<Order> findAll() {
-
         return orders.values()
                 .stream()
                 .sorted(
@@ -134,4 +128,42 @@ public class InMemoryOrderService implements OrderService {
                 .toList();
     }
 
+    @Override
+    public Order updateStatus(String orderId, OrderStatus status) {
+        if (orderId == null || orderId.isBlank()) {
+            throw new IllegalArgumentException(
+                    "El identificador del pedido es obligatorio."
+            );
+        }
+
+        Objects.requireNonNull(status, "El estado es obligatorio.");
+
+        Order current = orders.get(orderId);
+
+        if (current == null) {
+            throw new NoSuchElementException(
+                    "No existe el pedido: " + orderId
+            );
+        }
+
+        Order updated = new Order(
+                current.id(),
+                current.customerId(),
+                current.email(),
+                current.items(),
+                current.total(),
+                status,
+                current.createdAt()
+        );
+
+        orders.put(orderId, updated);
+
+        LOGGER.info(
+                "Estado actualizado: pedido={}, estado={}",
+                orderId,
+                status
+        );
+
+        return updated;
+    }
 }

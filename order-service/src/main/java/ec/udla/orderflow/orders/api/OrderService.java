@@ -5,35 +5,50 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Contrato publico para la gestion de pedidos.
+ * Contrato público para la gestión de pedidos.
  *
- * Otros bundles pueden utilizar esta interfaz
- * sin conocer su implementacion interna.
+ * Otros bundles pueden utilizar esta interfaz sin conocer
+ * la implementación interna del servicio.
  */
 public interface OrderService {
 
     /**
-     * Crea un nuevo pedido.
-     *
-     * @param customerId identificador del cliente
-     * @param total valor total del pedido
-     * @return pedido creado
+     * Crea un pedido usando los datos básicos.
      */
     Order createOrder(String customerId, BigDecimal total);
 
     /**
-     * Busca un pedido por su identificador.
+     * Crea un pedido con los datos que envía la interfaz web.
      *
-     * @param orderId identificador del pedido
-     * @return pedido encontrado o vacio
+     * El método default conserva compatibilidad con implementaciones
+     * anteriores; InMemoryOrderService lo sobrescribe para almacenar
+     * también el correo y el número de artículos.
+     */
+    default Order createOrder(
+            String customerId,
+            String email,
+            int items,
+            BigDecimal total
+    ) {
+        return createOrder(customerId, total);
+    }
+
+    /**
+     * Busca un pedido por su identificador.
      */
     Optional<Order> findById(String orderId);
 
     /**
      * Devuelve todos los pedidos registrados.
-     *
-     * @return lista de pedidos
      */
     List<Order> findAll();
 
+    /**
+     * Actualiza el estado de un pedido.
+     */
+    default Order updateStatus(String orderId, OrderStatus status) {
+        throw new UnsupportedOperationException(
+                "Esta implementación de OrderService no permite actualizar estados."
+        );
+    }
 }
