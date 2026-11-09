@@ -1,0 +1,18 @@
+# Maven
+**/target/
+
+# Visual Studio Code
+.vscode/
+
+# IntelliJ
+.idea/
+
+# Logs
+*.log
+
+# Windows
+Thumbs.db
+.DS_Store
+
+# Temporales
+*.tmp
