@@ -56,11 +56,14 @@
                             promotion-engine
                         </Bundle-SymbolicName>
 
-                        <Export-Package>!*</Export-Package>
+                        <Export-Package>
+    ec.udla.orderflow.promotions.api;version="1.0.0"
+</Export-Package>
 
-                        <Private-Package>
-                            ec.udla.orderflow.promotions.*
-                        </Private-Package>
+<Private-Package>
+    ec.udla.orderflow.promotions.internal,
+    ec.udla.orderflow.promotions.rules
+</Private-Package>
 
                         <Import-Package>
                             ec.udla.orderflow.orders.api;version="[1.0,2)",
